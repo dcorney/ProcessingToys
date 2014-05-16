@@ -1,0 +1,263 @@
+Measuring leaves in digitized herbarium specimens
+David Corney et al.
+Abstract
+The abstract. . .
+1 Introduction
+The world's major herbaria contain over XXX million specimens between them.
+Many of these are of great botanical significance, and moreover, are extremely del-
+icate. As imaging equipment, such as scanners and digital cameras, have improved
+in quality while also becoming cheaper, many herbaria have embarked on large scale
+digitization projects. These allow images of specimens to be shared widely with no
+risk of loss or damage to the specimens themselves. Digital imaging also creates
+the possibility of using image processing methods to automatically analyse images
+of specimens, to allowed detailed comparison and modelling of specimens.
+We show that leaf characters that are used by botanists to describe species can
+be automatically extracted. This automation allows large data sets to be generated
+easily, with minimal expert time. This latter point is especially important given
+the ongoing shortage of skill taxonomists CITE various . By taking measurements
+from thousands of leaves across a single taxon, we can derive descriptions of not just
+\typical" specimens or average value of characters, but also of the full distribution
+of specimens found. By reducing a set of values to a single mean, or a pair of values
+defining a range, we may discard valuable information regarding the variance or
+skew of the values CITE Stephen Jay Gould: Life's Grandeur .
+1.1 Related work
+1.1.1 Automatic leaf shape analysis
+A substantial body of work exists describing various attempts to analyse the shapes
+of leaves. In contrast to the present work, these typically rely on either images
+
+that are carefully prepared, such that each image contains a single leaf on a plain
+background, or else rely on manual editing of each image as a pre-processing stage
+to remove everything from the image except the leaf iteself. Also, in most of these
+studies, the leaves are chosen specifically for the analysis, and the specimens selected
+are free from insect damage, mechanical damage and so on. The leaves found on
+typical herbarium specimens are often damaged, before, during or after collection
+and mounting, and may also be very old, leading to frailty and potential further
+damage.
+1
+1.1.2 Manual leaf character exctraction
+Manual measurements of leaf length, width etc., followed by statistical and/or com-
+putational analysis of the results. CITE Clark etc. Rely on manual measurements,
+such as blade length, petiole length, the presence or absence of hairs, the pattern of
+venation, and so on.
+1.1.3 Other uses of herbarium specimens
+manual character extraction?
+1.1.4 Other object recognition tasks
+Face recognition, number plate, handwriting. All have much narrower range of
+targets / more precisely defined target. And/or constrained input (e.g. airport
+photo id requires people to stand facing camera, fixed distance, fixed lighting etc.)
+2 Method
+2.1 Image capture
+Our main priority when digitizing the specimens is to create high-quality images
+for subsequent processing. It is important to use a method that is consistent, so
+that algorithms can be developed that will work on all the images without special
+consideration. Create images with a sufficiently high resolution to allow features to
+be extracted.
+We chose equipment that is readily available at a moderate price, avoiding spe-
+cialist or custom-built options. We hope that this will allow other users to follow
+our methods, without requiring a large capital outlay. The kit is also quite compact,
+suitable for use in a working herbarim, where space is often at a premium.
+We also minimised the shadows cast by leaves and from external sources, by
+placing each specimen in a diffuser box, so that available light (including daylight
+from windows and nearby fluorescent lights) reaches all sides of the specimen equally.
+We also used a dedicated ash unit, angled to bounce the light off the ceiling above
+the specimen, to provide extra, uniform illumination without casting strong shadows.
+If, as often happens, a leaf is not completely at, but is partially lifted off the
+herbarium sheet, then it can cast shadows around the edge. Such shadows can
+reduce the useful information content, and may make it harder to identify the precise
+margin of the leaf.
+We used a standard digital SLR (Canon EOS50D, taking 15.1 megapixel images);
+a tripod; a diffuser screen (make XXX/model YYY); a ash (Canon XXXXX). We
+selected a fixed-length lens (Canon 55mm f2.5) that has been shown to minimise
+barrel and pin-cushion distortions [CITE website]. The aperture was fixed at f 11,
+giving a large depth-of-field to minimise any focussing issues, even with specimens
+which are not perfectly at. Also, mid-range apertures tend to produce minimal
+distortion [CITE same website]. We captured and stored both JPEG and Canon
+RAW format images, though only the JPEG images used here. These had a typical
+file size of 6Mb.
+2
+We placed a Macbeth colour checker and a ruler on (or immediately beside)
+each specimen. For the first preprocessing stage, we created simple algorithms to
+automatically locate both the colour checker and the ruler. Where required, the
+correct colour balance could be applied at this stage, possible working from RAW
+image file. In this work however, we are not using colour as a character, so have not
+carried out any colour correction.
+We chose to photograph every specimen of Tilia available in the herbarium of the
+Royal Botanic Gardens, Kew, including type and non-type specimens. In particular,
+we did not filter out specimens that seemed to contain mostly damaged leaves or
+mostly overlapping leaves, despite the likelihhood that automatic processing of these
+would be problematic. One of our aims is to determine the difficulty of automatic
+processing of herbarium specimens in general, rather than only of manually selected
+\easier" specimens.
+For practical reasons, we had to assign each specimen to a single species within
+the Tilia genus. To determine this using botanical keys or similar methods would
+have required a great deal of time and expertise, neither of which are typically abun-
+dant. Instead, we assumed in the first place that each specimen was filed in the
+\correct" folder, and that each folder was labelled with the \correct" species (along
+with any other taxonomic rank). We believe, however, that our methods are robust
+enough to cope with some misplaced or mislabelled specimens; indeed, one of our
+aims is to identify automatically any specimen that appears to be mislabelled or
+placed in the wrong folder.
+2.2 Locating leaf boundaries
+We followed a modular approach to develop algorithms to locate leaves within images
+of herbarium specimens. We recognise that some methods will work better than
+others, depending on the particular chararacteristics of the leaves in the specimens,
+and a modular approach allows particular aspects of the system to be easily changed
+in isolation from the rest of the system. The broad approach we take is to identify
+initally a broad set of regions in the image that might be leaves, and then refine
+and improve the initial estimates until we have identified accurately a set of leaves
+in the image, ready for subsequent character extraction. Throughout this section,
+by \image" we refer to a digital photograph of a single herbarium specimen, as
+described above in Section 2.1.
+2.2.1 Stage 1: identify set of \candidate leaves'
+The aim of this stage is find any and all regions of the image that could be a leaf. We
+define each such region as a candidate leaf, defined by a continuous boundary. The
+goal is to quickly find approximate boundaries of many candidate leaves, leaving
+later stages to refine the boundaries or to reject candidates entirely, if they are not
+in fact leaves. For example, this stage may falsely identify bracts, leaf fragments,
+stems or other background clutter as leaves.
+We use a deformable templates approach CITE , optimised using a simple ge-
+netic algorithm CITE . Genetic algorithms (GAs) are simple stochastic optimisa-
+tion algorithms, inspired by notions of Darwinian natural selection, that maintain
+a population of candidate solutions that are iteratively improved though mutation,
+3
+cross-over and selection1. Deformable templates have been used in a variety of
+object recogntion problems CITES , where the objects to be found vary in their
+exact form. An initial template is defined, which is then deformed randomly un-
+til its boundary largely coincides with a set of images found in the image under
+consideration. Add diagram of deformable templates, GA etc.
+In our work, the \chromosome" of the genetic algorithm defines the location,
+orientation, scale and deformation of a template. The initlal template used was
+a circle? isolated leaf? , and we follow the pattern of trigonometric deformations
+defined by CITE def temp paper . This produces a series of deformed versions of
+the template, such that the bounding contour always forms a continuous, closed
+loop. While such deformations are powerful enough to match any shape, in practice
+it takes a very large number of iterations to produce a close match, but only relatively
+few to find an approximate match. We therefore defer the attempt to find the exact
+boundary of the leaves in the image to the next stage.
+2.2.2 Stage 2: refine candidate boundaries
+In this stage, we take each candidate leaf boundary produced in the previous stage
+and refine it so that it lies closer to the boundary between the candidate leaf object
+and the herbarium mounting sheet. We use a snake edge detector CITE , optimised
+using a level set method CITE to iteratively adjust the candidate leaf boundary
+until it corresponds very closely to the high-contrast edges in the image. The level set
+method works by maintaining a series of points on the current estimated boundary,
+and moving them at a speed inversely proportional to the local gradient of the image.
+The effect is that the line slows and stops moving as it approaches the edge of an
+object (a very high local gradient), while it moves quickly across uniform regions.
+After sufficient iterations, the boundary line will closely match the edge of the region
+that it starts in.
+The end result is a series of well-defined objects, although the set will still contain
+a number of non-leaf objects, which we filter out in the next stage.
+2.2.3 Stage 3: filter candidate leaf set to remove false positives
+The aim of this stage is to remove from our set of candidate objects those that are
+not in fact leaves. We do not want a system that is restricted to a single genus (or
+any other taxon), but recognise that the diversity of leaves between genera makes
+it very hard to define absolutely what consititues a leaf. Instead, we ask the user
+to select a small number of leaves typical of the genus under consideration. This is
+a very simple task: the user is presented with a number of candidate leaves, and
+simply has to click on a few that are typical leaves. The user does not have to
+identify the species (or provide any other taxonomic information), nor do they have
+to carry out other time-consuming tasks such as drawing round the outline of a leaf.
+In our case, a set of XXX leaves were chosen by one of us (DC) in a process that
+took approximately YYY minutes.
+This produces a hand-labelled subset of candidates representing leaves. Any
+object that is found to be substantially different from these will be discarded, and
+1In the current form, we do not use cross-over, so the algorithm is strictly speaking an evolution
+strategy algorithm, relying on mutation and selection alone.
+4
+assumed to be wrongly extracted objects (e.g. bracts, owers, fruits etc.) or badly
+damaged leaves (insect damage, mechanical damage etc.); or the result of multiple
+overlapping leaves being extracted as if they were a single leaf. In this way, we
+correct the \mistakes" made by the earlier stages of the process, which in turn
+makes the earlier object locating stages less critical and easier to develop.
+To compare each candidate object with the hand-labelled \good" leaves, we
+convert both the hand-labelled leaves and the unknown candidate object's out-
+lines to time-series, by tracing round the boundary from an arbitrary starting
+point, and measuring the distance to the centroid of the object at each point
+Add diagram showing time-series creation/comparison . Unlabelled objects can then
+be compared to the set of \good" leaves by comparing the time-series. We are not
+concerned with computational efficiency here, though savings could be made (cite
+Keogh).
+Single-class classification, as a form of outlier detection, is then used. We assume
+that all (reasonably) healthy, undamaged leaves will share broad shape characteris-
+tics, whereas damaged or incorrectly extracted leaves will differ in arbitrary ways.
+2.2.4 Alternatives
+2.3 Extracting leaf characters
+Given a set of points on the boundary of a leaf, the simplest feature to extact is the
+area. By itself, this can be useful for identifying species (cite). Other shape features
+such as leaf length and width require identification of the primary vein and/or the
+insertion point and leaf tip. Here, we consider area as a first character to extract
+and process.
+Published ora typically describe many characters of leaves, of starting with the
+length and width, which are often useful for helping to identify taxa, and are easy
+for a (human) botanist to measure.
+2.3.1 Leaf length
+We define the length of a Tilia leaf as being the straight-line distance from the
+insertion point to the tip. To determine the length, we must therefore locate both
+points. To do so, we combined several methods, as no single method worked across
+all the leaves being analsysed. We assume that the primary vein runs from the
+insertion point to the tip; that the leaf is approximately symmetric along this vein.
+ Difference of Gaussian filters | to enhance contrast of veins with respect to
+the leaf blade;
+ Hough transform | to find the primary veins, which are (nearly) straight;
+ Local morphological search | analysing the rate of change of gradient around
+the edge, to find the tip and the sinus (which, if present, corresponds closely
+to the insertion point);
+ Symmetry | virtually folding the leaf along an axis to measure how closely
+the opposite edges line up;
+5
+2.3.2 Finding leaf tips
+One specific problem that arises when identifying a leaf perimiter on a herbarium
+sheet is that many leaves are held in place by means of paper strips. These are thin
+white strips, typically glued to the herbarium sheet at either end, and held taught
+across the leaf. In most cases, they are used towards the tip of the leaf, to avoid
+directly gluing the leaf to the sheet. Any segmentation or edge-detection algorithm
+that is guided by colour (or intensity) will tend to treat these paper strips as part of
+the background sheet, and so will treat any part of the leaf tip protruding beyond
+the strip as being a separate object. We therefore developed a specific algorithm to
+address this problem. Given the primary axis of the leaf, defined by the primary
+vein (as described above), we extrapolate this line beyond the main body of the leaf
+blade and measue the intensity profile. If the tip is partially obscured by a paper
+strip, then we expect this profile to clearly show the leaf tip beyond any paper strip.
+main part of blade tip herbarium paper herbarium sheet strip sheet
+If such a tip is found, we then adjust our estimate of the primary axis of the leaf,
+and therefore the length, to reect the improved esimate of the tip location.
+2.3.3 Leaf width
+Once a pricipal axis has been determined, on which both the tip and insertion point
+lie, we can then determine the width of the leaf. This we define as the greatest
+distance from a point on the leaf margin to a point on the opposite margin in such
+a way that the line crosses the principal axis at right-angles (see Figure ZZZ). If
+necessarly, several widths could be defined in this way, such as the width 10% from
+the tip, 20% from the tip and so on, in a manner similar to CITE Wilkin XXXX .
+Here, we use a single width value, defined as the maximum width.
+3 Results
+Number of specimens photographed
+Number of candidates found in stage 1
+Number of candidates found in stage 2
+Changes in leaf length by tip-finder
+Distribution of leaf size by species
+Correlation between maximum (minimum) size for extracted leaves vs. Pigott
+ora (significant)
+Absolute comparison - less impressive.
+The extracted lengths of the leaves are, on average, much shorter than the figures
+quoted by Pigott (1997). There are a number of reasons for this, included the manner
+in which leaves are selected when writing formal descriptions; the manner in which
+herbarium specimens are collected; the relative ease for a computer to find small
+leaves rather than larger leaves;
+When a botanist examines a specimen, s/he will use their expertise to select a
+number of \representative" leaves. These will be leaves that are undamaged, healthy
+and mature. Our algorthim cannot distinguish mature from immature leaves (a task
+made even harder from dried herbarium specimensm, where leaf thickness and colour
+may not be easy to acertain), and so many leaves that are extracted will be of a
+typical shape, but smaller than described by the ora. When comparing the shape
+6
+of two leaves, we can use a scale-independent representation, such as elliptic Fourier
+analysis or the time-series approach described earlier; however, when comparing
+leaf length and width, these methods are irrelevant. Instead, we must reject leaves
+that are significantly smaller than largest leaves typically found. We therefore use
+a deliberately biased form of robust statistics, and reject all leaves below XXX% of
+the largest area, and all leaves above YYY% of the largest area. These ranges are
+defined for each species considered.
+When mounting a group of leaves on a standard sized herbarium sheet, smaller
+leaves are less likely to overlap with other leaves, by virtue of their size alone.
+Discussion
